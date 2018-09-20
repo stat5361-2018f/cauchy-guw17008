@@ -152,21 +152,13 @@ for(k in 1:length(i)) {
   }
 }
 library(pander)
-table1_F=rbind(i,theta1_F)
-table2_F=rbind(i,theta2_F)
-table3_F=rbind(i,theta3_F)
-rownames(table1_F)=c("i","root")
-set.caption("Fixed-point iterations for a=1")
-pander(table1_F)
-rownames(table2_F)=c("i","root")
-set.caption("Fixed-point iterations for a=0.64")
-pander(table2_F)
-rownames(table3_F)=c("i","root")
-set.caption("Fixed-point iterations for a=0.25")
-pander(table3_F)
-plot(i,theta1_F,xlab = NULL, ylab = "root",main="Fixed-point iterations for alpha=1")
-plot(i,theta2_F,xlab = NULL, ylab = "root",main="Fixed-point iterations for alpha=0.64")
-plot(i,theta3_F,xlab = NULL, ylab = "root",main="Fixed-point iterations for alpha=0.25")
+table_F=rbind(i,theta1_F,theta2_F,theta3_F)
+rownames(table_F)=c("i","root for a=1","root for a=0.64","root for a=0.25")
+set.caption("Fixed-point iterations")
+pander(table_F)
+plot(i,theta1_F,col="green",xlab = NULL, ylab = "root",main="Fixed-point iterations for alpha=1:green,alpha=0.64:blue,alpha=0.25:red")
+points(i,theta2_F,col="blue")
+points(i,theta3_F,col="red")
 ```
 
 # 5 Fisher scoring
