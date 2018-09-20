@@ -1,0 +1,202 @@
+---
+title: "Different Ways to Solve MLE for Cauchy Distribution"
+author: "Guanting Wei"
+date: "Sep.17.2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# 1 Proof
+Density function:
+\[
+f(x;\theta)=\frac{1}{\pi[1 + (x - \theta)^2]}\notag
+\eqno{(1.1)}
+\]
+
+The likelihood funcion:
+\[
+L(\theta)=\prod_{i=1}^{n}f(X_{i};\theta)
+\eqno{(1.2)}
+\]
+
+The loglikelihood funcion:
+\[
+{l(\theta)}=\ln L(\theta)=\sum_{i=1}^{n}\ln f(X_{i};\theta)=-n\ln\pi-\sum_{i=1}^{n}\ln[1+(\theta-X_{i})^{2}]
+\eqno{(1.3)}
+\]
+
+Compute the differential of loglikelihood funcion:
+
+First derivative:
+\[
+{l'(\theta)}=-2\sum_{i=1}^{n}\frac{\theta-X_{i}}{1+(\theta-X_{i})^{2}}
+\eqno{(1.4)}
+\]
+
+Second derivative:
+\[
+{l''(\theta)}=-2\sum_{i=1}^{n}\frac{1-(\theta-X_{i})^{2}}{[1+(\theta-X_{i})^{2}]^{2}}
+\eqno{(1.5)}
+\]
+
+Fisher information:
+\[
+\begin{aligned}
+I_{n}(\theta)&=-E[(l''(\theta)]\\&=2E\left\{\sum_{i=1}^{n}\frac{1-(\theta-X_{i})^{2}}{[1+(\theta-X_{i})^{2}]^{2}}\right\}\\&=2nE\left\{\frac{1-(\theta-X)^{2}}{[1+(\theta-X)^2]^2}\right\}\\&=2n\int_{-\infty}^{\infty}\frac{1-(\theta-x)^2}{[1+(\theta-x)^2]^2}\frac{1}{\pi[1+(x-\theta)^2]}{\mathrm{d}x}\\&=\frac{2n}{\pi}\int_{-\infty}^{\infty}\frac{1-(\theta-x)^2}{[1+(\theta-x)^2]^2}\frac{1}{1+(x-\theta)^2}{\mathrm{d}x}\\\\&=\frac{2n}{\pi}\int_{-\infty}^{\infty}\frac{1-x^2}{(1+x^2)^2}\frac{1}{1+x^2}{\mathrm{d}x}\\&=\frac{2n}{\pi}\int_{-\infty}^{\infty}(\frac{x}{1+x^2})'\frac{1}{1+x^2}\mathrm{d}x\\&=\frac{2n}{\pi}\int_{-\infty}^{\infty}\frac{1}{1+x^2}\mathrm{d}(\frac{x}{1+x^2})\\&=\frac{2n}{\pi}\frac{x}{1+x^2}\frac{1}{1+x^2}\bigg|_{-\infty}^{\infty}-\frac{2n}{\pi}\int_{-\infty}^{\infty}\frac{x}{1+x^2}\mathrm{d}(\frac{1}{1+x^2})\\&=\frac{4n}{\pi}\int_{-\infty}^{\infty}\frac{x^2}{(1+x^2)^3}{\mathrm{d}x}\\&=\frac{4n}{\pi}\int_{\frac{\pi}{2}}^{\frac{\pi}{2}}\frac{(\tan t)^2}{[(1+\tan t)^2]^3}{\mathrm{d}\tan t}\\&=\frac{4n}{\pi}\int_{-\frac{\pi}{2}}^{\frac{\pi}{2}}{(\sin t)^2}{(\cos t)^2}\mathrm{d}t\\&=\frac{4n}{\pi}\int_{-\frac{\pi}{2}}^{\frac{\pi}{2}}(\frac{1}{2}\sin 2t)^2\mathrm{d}t\\&=\frac{4n}{\pi}\int_{-\frac{\pi}{2}}^{\frac{\pi}{2}}\frac{1-\cos 4t}{8}\mathrm{d}t\\&=\frac{n}{2}
+\end{aligned}
+\eqno{(1.6)}
+\]
+
+# 2 Plot
+First, we need to define all functions above. And then We choose 10 random numbers according to density function above using "rcauchy".
+```{r}
+f=function(x,theta)1/(pi*(1+(x-theta)^2))
+
+L=function(x,theta){
+  prod=1;
+  for (i in 1:length(x)){
+    prod = prod*(1/(pi*(1+(x[i]-theta)^2)));
+  }
+  prod
+}
+
+l=function(x,theta){log(L(x,theta))}
+
+l1=function(x,theta){
+  sum=0;
+  for(i in 1:length(x)){
+    sum=sum-2*(theta-x[i])/(1+(theta-x[i])^2)
+  }
+  sum
+}
+
+l2=function(x,theta){
+  sum=0;
+  for(i in 1:length(x)){
+    sum=sum-2*(1-(theta-x[i])^2)/(1+(theta-x[i])^2)^2
+  }
+  sum
+}
+
+set.seed(20180909)
+X=rcauchy(10,5)
+```
+
+Next, we use those 10 numbers to plot the figure of $l(\theta)$
+```{r}
+library("ggplot2")
+ggplot(data.frame(x=c(-20,20)),aes(x=x)) + 
+  stat_function(fun=function(theta) l(X,theta)) + 
+  labs(x=expression("theta"),y="l")
+```
+
+
+
+# 3 Newton–Raphson method
+According to the result, different initial value may cause different results which are totally different. However, some close number can lead to the same answer. For example, initial value 5,5.5,6,6.5 leads to the same root 5.685418.
+```{r}
+i=seq(-10, 20, 0.5)
+theta_N=matrix(0,1, length(i))
+count_N=matrix(0,1, length(i))
+for(k in 1:length(i)) {
+  theta_N[k]=i[k]
+  while (abs(l1(X,theta_N[k]))>0.001&&count_N[k]<10000) {
+    temp=theta_N[k]-l1(X,theta_N[k])/l2(X,theta_N[k])
+    theta_N[k]=temp
+    count_N[k]=count_N[k]+1
+  }
+}
+library(pander)
+table_N=rbind(i,theta_N)
+rownames(table_N)=c("i","root")
+set.caption("Newton–Raphson method")
+pander(table_N)
+plot(i,theta_N,xlab = NULL, ylab = "root",main="Newton–Raphson method")
+
+```
+
+
+# 4 Fixed-point iterations
+From the results, we can see the smaller initial value causes  more stable result.
+```{r}
+i=seq(-10, 20, 0.5)
+a1=1
+a2=0.64
+a3=0.25
+theta1_F=theta2_F=theta3_F=matrix(0,1, length(i))
+count1_F=count2_F=count3_F=matrix(0,1, length(i))
+for(k in 1:length(i)) {
+  theta1_F[k]=i[k]
+  while (abs(l1(X,theta1_F[k]))>0.001&&count1_F[k]<10000) {
+    temp=a1*l1(X,theta1_F[k])+theta1_F[k]
+    count1_F[k]=count1_F[k]+1
+    theta1_F[k]=temp
+  }
+}
+for(k in 1:length(i)) {
+  theta2_F[k]=i[k]
+  while (abs(l1(X,theta2_F[k]))>0.001&&count2_F[k]<10000) {
+    temp=a2*l1(X,theta2_F[k])+theta2_F[k]
+    count2_F[k]=count2_F[k]+1
+    theta2_F[k]=temp
+  }
+}
+for(k in 1:length(i)) {
+  theta3_F[k]=i[k]
+  while (abs(l1(X,theta3_F[k]))>0.001&&count3_F[k]<10000) {
+    temp=a3*l1(X,theta3_F[k])+theta3_F[k]
+    count3_F[k]=count3_F[k]+1
+    theta3_F[k]=temp
+  }
+}
+library(pander)
+table1_F=rbind(i,theta1_F)
+table2_F=rbind(i,theta2_F)
+table3_F=rbind(i,theta3_F)
+rownames(table1_F)=c("i","root")
+set.caption("Fixed-point iterations for a=1")
+pander(table1_F)
+rownames(table2_F)=c("i","root")
+set.caption("Fixed-point iterations for a=0.64")
+pander(table2_F)
+rownames(table3_F)=c("i","root")
+set.caption("Fixed-point iterations for a=0.25")
+pander(table3_F)
+plot(i,theta1_F,xlab = NULL, ylab = "root",main="Fixed-point iterations for alpha=1")
+plot(i,theta2_F,xlab = NULL, ylab = "root",main="Fixed-point iterations for alpha=0.64")
+plot(i,theta3_F,xlab = NULL, ylab = "root",main="Fixed-point iterations for alpha=0.25")
+```
+
+# 5 Fisher scoring
+
+```{r}
+i=seq(-10, 20, 0.5)
+theta_S=matrix(0,1, length(i))
+count_S=matrix(0,1, length(i))
+I=length(X)/2
+for(k in 1:length(i)) {
+  theta_S[k]=i[k]
+  while (abs(l1(X,theta_S[k]))>0.001&&count_S[k]<10000) {
+    temp=theta_S[k]+l1(X,theta_S[k])/I
+    theta_S[k]=temp
+    count_S[k]=count_S[k]+1
+  }
+}
+library(pander)
+table_S=rbind(i,theta_S)
+rownames(table_S)=c("i","root")
+set.caption("Fisher scoring")
+pander(table_S)
+plot(i,theta_S,xlab = NULL, ylab = "root",main="Fisher scoring")
+```
+
+# 6 Comment
+From the table below, Fisher scoring seems to be the fastest. From the figures above, Fisher scoring seems to be the most stable.
+```{r}
+c=rbind(i,count_N,count1_F,count2_F,count3_F,count_S)
+rownames(c)=c("i","Newton Raphson","Fixed-point a=1","Fixed-point a=0.64","Fixed-point a=0.25","Fisher scoring")
+pander(c)
+
+```
